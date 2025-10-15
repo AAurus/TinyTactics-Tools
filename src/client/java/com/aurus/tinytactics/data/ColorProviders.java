@@ -2,7 +2,6 @@ package com.aurus.tinytactics.data;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.aurus.tinytactics.TinyTactics;
 import com.aurus.tinytactics.registry.DataRegistrar;
 
 import net.minecraft.block.BlockState;
@@ -40,7 +39,6 @@ public class ColorProviders {
                 if (entity != null) {
                     DyeColor color = entity.getComponents().get(DataRegistrar.DYE_COLOR);
                     if (color != null) {
-                        TinyTactics.LOGGER.info(color.asString());
                         return color.getEntityColor();
                     }
                 }

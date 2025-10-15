@@ -40,7 +40,7 @@ public class TinyTacticsClient implements ClientModInitializer {
                 BlockRegistrar.SIMPLE_DYEABLE_BLOCKS);
 
         BlockEntityRendererFactories.register(BlockRegistrar.ACTOR_MARKER_BLOCK_ENTITY, ActorMarkerBlockRenderer::new);
-        BlockRenderLayerMap.putBlock(BlockRegistrar.ACTOR_MARKER, BlockRenderLayer.CUTOUT);
+        BlockRenderLayerMap.putBlock(BlockRegistrar.ACTOR_MARKER, BlockRenderLayer.TRIPWIRE);
     }
 
     public static void receiveRulerMapPacket(TacticsRulerMapPayload payload, ClientPlayNetworking.Context context) {

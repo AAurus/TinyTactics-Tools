@@ -51,7 +51,9 @@ public class ActorMarkerBlock extends BlockWithEntity {
     private static final VoxelShape OUTLINE_SHAPE = Block.createCuboidShape(1.0, 1.0, 1.0, 15.0, 15.0, 15.0);
 
     public ActorMarkerBlock(Settings settings) {
-        super(settings.noCollision().luminance(x -> 1));
+        super(settings.noCollision().luminance(state -> {
+            return state.get(ROTATION);
+        }));
         setDefaultState(getDefaultState().with(ROTATION, 0).with(COLOR, DyeColor.WHITE));
     }
 
@@ -113,11 +115,6 @@ public class ActorMarkerBlock extends BlockWithEntity {
 
     public ItemStack getPickStack(WorldView world, BlockPos pos, BlockState state) {
         ItemStack itemStack = super.getPickStack(world, pos, state, true);
-        // world.getBlockEntity(pos,
-        // BlockRegistrar.ACTOR_MARKER_BLOCK_ENTITY).ifPresent((blockEntity) -> {
-        // blockEntity.setComponents(itemStack.getComponents()); //(itemStack,
-        // world.getRegistryManager());
-        // });
         return itemStack;
     }
 
