@@ -2,15 +2,13 @@ package com.aurus.tinytactics.blocks.actor_marker;
 
 import com.aurus.tinytactics.data.ActorMarkerInventory;
 import com.aurus.tinytactics.registry.BlockRegistrar;
-import com.aurus.tinytactics.registry.DataRegistrar;
-
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.component.ComponentMap;
-import net.minecraft.component.ComponentsAccess;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.math.BlockPos;
 
 public class ActorMarkerBlockEntity extends BlockEntity {
@@ -40,35 +38,18 @@ public class ActorMarkerBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void readComponents(ComponentsAccess components) {
-        super.readComponents(components);
-        this.items = components.getOrDefault(DataRegistrar.ACTOR_MARKER_INVENTORY, ActorMarkerInventory.DEFAULT);
+    protected void writeData(WriteView writeView) {
+        writeView.put("actor_marker_inventory", ActorMarkerInventory.CODEC, items);
+        super.writeData(writeView);
     }
 
     @Override
-    protected void addComponents(ComponentMap.Builder componentMapBuilder) {
-        super.addComponents(componentMapBuilder);
-        componentMapBuilder.add(DataRegistrar.ACTOR_MARKER_INVENTORY, items);
+    protected void readData(ReadView readView) {
+        super.readData(readView);
+
+        items = readView.read("actor_marker_inventory", ActorMarkerInventory.CODEC)
+                .orElse(ActorMarkerInventory.DEFAULT);
     }
-
-    // @Override
-    // protected void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup
-    // lookup) {
-    // nbt.put("attachments", items.encode(lookup));
-    // super.writeNbt(nbt, lookup);
-    // }
-
-    // @Override
-    // protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup)
-    // {
-    // super.readNbt(nbt, lookup);
-
-    // NbtElement nbtItems = nbt.get("attachments");
-    // if (nbtItems != null) {
-    // items = ActorMarkerInventory.fromNbt(lookup,
-    // nbtItems).orElse(ActorMarkerInventory.DEFAULT);
-    // }
-    // }
 
     @Override
     public NbtCompound toInitialChunkDataNbt(RegistryWrapper.WrapperLookup lookup) {

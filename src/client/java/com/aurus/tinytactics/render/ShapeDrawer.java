@@ -4,19 +4,29 @@ import java.util.List;
 import java.util.Objects;
 
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.BufferBuilder;
-//import net.minecraft.client.render.BufferRenderer;
+import net.minecraft.client.render.BuiltBuffer;
 import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.Tessellator;
-import com.mojang.blaze3d.vertex.VertexFormat.DrawMode;
-import net.minecraft.client.render.VertexFormats;
+import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
 
 public class ShapeDrawer {
+    private BufferBuilder buffer;
+    public static final ShapeDrawer INSTANCE = new ShapeDrawer();
 
-    public static void renderCone(WorldRenderContext context, Vec3d tipPos, double length, double diameter,
+    private ShapeDrawer() {
+    }
+
+    public static ShapeDrawer getInstance() {
+        return INSTANCE;
+    }
+
+    public void extractAndDrawCone(WorldRenderContext context, Vec3d tipPos, double length, double diameter,
             Vec3d normal, int color) {
         Camera camera = context.camera();
         MatrixStack matrices = Objects.requireNonNull(context.matrixStack());
@@ -28,11 +38,13 @@ public class ShapeDrawer {
         Vec3d endPos = tipPos.add(normal.normalize().multiply(length));
         List<Vec3d> ring = RenderUtils.getRingAround(normal, endPos, diameter);
 
-        renderTip(camera, matrices, tipPos, ring, color);
-        renderBase(camera, matrices, ring, color);
+        extractTip(camera, matrices, tipPos, ring, color);
+        drawShapes(MinecraftClient.getInstance(), TacticsDrawRenderPipelines.TACTICS_CONES);
+        extractBase(camera, matrices, ring, color);
+        drawShapes(MinecraftClient.getInstance(), TacticsDrawRenderPipelines.TACTICS_CONES);
     }
 
-    public static void renderCylinder(WorldRenderContext context, Vec3d basePos, double length, double diameter,
+    public void extractAndDrawCylinder(WorldRenderContext context, Vec3d basePos, double length, double diameter,
             Vec3d normal, int color) {
         Camera camera = context.camera();
         MatrixStack matrices = Objects.requireNonNull(context.matrixStack());
@@ -45,12 +57,15 @@ public class ShapeDrawer {
         List<Vec3d> baseRing = RenderUtils.getRingAround(normal, basePos, diameter);
         List<Vec3d> endRing = RenderUtils.getRingAround(normal, endPos, diameter);
 
-        renderBase(camera, matrices, baseRing, color);
-        renderBand(camera, matrices, baseRing, endRing, color);
-        renderBase(camera, matrices, endRing, color);
+        extractBase(camera, matrices, baseRing, color);
+        drawShapes(MinecraftClient.getInstance(), TacticsDrawRenderPipelines.TACTICS_CONES);
+        extractBase(camera, matrices, endRing, color);
+        drawShapes(MinecraftClient.getInstance(), TacticsDrawRenderPipelines.TACTICS_CONES);
+        extractBand(camera, matrices, baseRing, endRing, color);
+        drawShapes(MinecraftClient.getInstance(), TacticsDrawRenderPipelines.TACTICS_BANDS);
     }
 
-    public static void renderSphere(WorldRenderContext context, Vec3d centerPos, double diameter, int color) {
+    public void extractAndDrawSphere(WorldRenderContext context, Vec3d centerPos, double diameter, int color) {
 
         Camera camera = context.camera();
         MatrixStack matrices = Objects.requireNonNull(context.matrixStack());
@@ -67,27 +82,33 @@ public class ShapeDrawer {
         List<Vec3d> prevRing = RenderUtils.getRingAround(normal, centerPos.add(0, sphereData.get(0).y, 0),
                 sphereData.get(0).x, sphereSegments);
 
-        ShapeDrawer.renderTip(camera, matrices, centerPos.add(0, diameter / 2, 0),
+        extractTip(camera, matrices, centerPos.add(0, diameter / 2, 0),
                 prevRing, color);
+        drawShapes(MinecraftClient.getInstance(), TacticsDrawRenderPipelines.TACTICS_CONES);
 
         for (int i = 1; i < sphereData.size(); i++) {
             Vec3d currentRingCenter = centerPos.add(0, sphereData.get(i).y, 0);
             List<Vec3d> currentRing = RenderUtils.getRingAround(normal, currentRingCenter, sphereData.get(i).x,
                     sphereSegments);
-            renderBand(camera, matrices, prevRing, currentRing, color);
+            extractBand(camera, matrices, prevRing, currentRing, color);
             prevRing = currentRing;
         }
+        drawShapes(MinecraftClient.getInstance(), TacticsDrawRenderPipelines.TACTICS_BANDS);
 
-        ShapeDrawer.renderTip(camera, matrices, centerPos.add(0, -diameter / 2, 0),
+        extractTip(camera, matrices, centerPos.add(0, -diameter / 2, 0),
                 prevRing, color);
+        drawShapes(MinecraftClient.getInstance(), TacticsDrawRenderPipelines.TACTICS_CONES);
 
     }
 
-    public static void renderTip(Camera camera, MatrixStack matrices, Vec3d tipPos, List<Vec3d> baseRing, int color) {
+    public void extractTip(Camera camera, MatrixStack matrices, Vec3d tipPos, List<Vec3d> baseRing, int color) {
         matrices.push();
 
-        final Tessellator tess = Tessellator.getInstance();
-        BufferBuilder buffer = tess.begin(DrawMode.TRIANGLE_FAN, VertexFormats.POSITION_COLOR);
+        if (buffer == null) {
+            buffer = new BufferBuilder(TacticsDrawRenderPipelines.ALLOCATOR,
+                    TacticsDrawRenderPipelines.TACTICS_CONES.getVertexFormatMode(),
+                    TacticsDrawRenderPipelines.TACTICS_CONES.getVertexFormat());
+        }
 
         matrices.translate(-camera.getPos().x, -camera.getPos().y, -camera.getPos().z);
 
@@ -104,16 +125,17 @@ public class ShapeDrawer {
 
         RenderUtils.setRenderPreferences();
 
-        //BufferRenderer.drawWithGlobalProgram(buffer.end());
-
         matrices.pop();
     }
 
-    public static void renderBase(Camera camera, MatrixStack matrices, List<Vec3d> baseRing, int color) {
+    public void extractBase(Camera camera, MatrixStack matrices, List<Vec3d> baseRing, int color) {
         matrices.push();
 
-        final Tessellator tess = Tessellator.getInstance();
-        BufferBuilder buffer = tess.begin(DrawMode.TRIANGLE_FAN, VertexFormats.POSITION_COLOR);
+        if (buffer == null) {
+            buffer = new BufferBuilder(TacticsDrawRenderPipelines.ALLOCATOR,
+                    TacticsDrawRenderPipelines.TACTICS_CONES.getVertexFormatMode(),
+                    TacticsDrawRenderPipelines.TACTICS_CONES.getVertexFormat());
+        }
 
         matrices.translate(-camera.getPos().x, -camera.getPos().y, -camera.getPos().z);
 
@@ -123,17 +145,18 @@ public class ShapeDrawer {
 
         RenderUtils.setRenderPreferences();
 
-        //BufferRenderer.drawWithGlobalProgram(buffer.end());
-
         matrices.pop();
     }
 
-    public static void renderBand(Camera camera, MatrixStack matrices, List<Vec3d> ring1, List<Vec3d> ring2,
+    public void extractBand(Camera camera, MatrixStack matrices, List<Vec3d> ring1, List<Vec3d> ring2,
             int color) {
         matrices.push();
 
-        final Tessellator tess = Tessellator.getInstance();
-        BufferBuilder buffer = tess.begin(DrawMode.TRIANGLE_STRIP, VertexFormats.POSITION_COLOR);
+        if (buffer == null) {
+            buffer = new BufferBuilder(TacticsDrawRenderPipelines.ALLOCATOR,
+                    TacticsDrawRenderPipelines.TACTICS_CONES.getVertexFormatMode(),
+                    TacticsDrawRenderPipelines.TACTICS_CONES.getVertexFormat());
+        }
 
         matrices.translate(-camera.getPos().x, -camera.getPos().y, -camera.getPos().z);
 
@@ -153,8 +176,18 @@ public class ShapeDrawer {
 
         RenderUtils.setRenderPreferences();
 
-        //BufferRenderer.drawWithGlobalProgram(buffer.end());
-
         matrices.pop();
+    }
+
+    private void drawShapes(MinecraftClient client, RenderPipeline pipeline) {
+        BuiltBuffer builtBuffer = buffer.end();
+        BuiltBuffer.DrawParameters params = builtBuffer.getDrawParameters();
+        VertexFormat format = params.format();
+
+        GpuBuffer verts = TacticsDrawRenderPipelines.upload(params, format, builtBuffer);
+        TacticsDrawRenderPipelines.draw(client, pipeline, builtBuffer, params, verts, format);
+
+        TacticsDrawRenderPipelines.rotateVertexBuffer();
+        buffer = null;
     }
 }

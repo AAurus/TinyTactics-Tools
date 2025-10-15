@@ -2,6 +2,7 @@ package com.aurus.tinytactics.data;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.aurus.tinytactics.TinyTactics;
 import com.aurus.tinytactics.registry.DataRegistrar;
 
 import net.minecraft.block.BlockState;
@@ -34,11 +35,21 @@ public class ColorProviders {
     public static int getBlockEntityColor(BlockState state, @Nullable BlockRenderView world, @Nullable BlockPos pos,
             int tintIndex) {
         if (tintIndex == 0) {
-            BlockEntity entity = world.getBlockEntity(pos);
-            if (entity != null) {
-                DyeColor color = entity.getComponents().get(DataRegistrar.DYE_COLOR);
-                if (color != null) {
-                    return color.getEntityColor();
+            if (world != null && pos != null) {
+                BlockEntity entity = world.getBlockEntity(pos);
+                if (entity != null) {
+                    DyeColor color = entity.getComponents().get(DataRegistrar.DYE_COLOR);
+                    if (color != null) {
+                        TinyTactics.LOGGER.info(color.asString());
+                        return color.getEntityColor();
+                    }
+                }
+            } else {
+                if (tintIndex == 0) {
+                    if (state.getBlock().getStateManager().getProperty("dye_color") instanceof DyeColorProperty prop) {
+                        DyeColor color = ((DyeColor) state.get(prop));
+                        return color.getEntityColor();
+                    }
                 }
             }
         }

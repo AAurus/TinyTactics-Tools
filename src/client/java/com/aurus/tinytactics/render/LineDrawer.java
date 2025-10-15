@@ -3,25 +3,14 @@ package com.aurus.tinytactics.render;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.OptionalDouble;
-import java.util.OptionalInt;
-
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
-import net.minecraft.client.gl.MappableRingBuffer;
 import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.BuiltBuffer;
-//import net.minecraft.client.render.BufferRenderer;
 import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.Tessellator;
-import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.MinecraftClient;
 
-import com.aurus.tinytactics.TinyTactics;
 import com.mojang.blaze3d.buffers.GpuBuffer;
-import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.systems.RenderPass;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.Vec3d;
@@ -54,7 +43,7 @@ public class LineDrawer {
         VertexFormat format = params.format();
 
         GpuBuffer verts = TacticsDrawRenderPipelines.upload(params, format, builtBuffer);
-        draw(client, pipeline, builtBuffer, params, verts, format);
+        TacticsDrawRenderPipelines.draw(client, pipeline, builtBuffer, params, verts, format);
 
         TacticsDrawRenderPipelines.rotateVertexBuffer();
         buffer = null;
@@ -142,56 +131,6 @@ public class LineDrawer {
 
             matrices.pop();
         }
-    }
-
-    private static void draw(MinecraftClient client, RenderPipeline pipeline, BuiltBuffer builtBuffer,
-            BuiltBuffer.DrawParameters drawParameters, GpuBuffer vertices, VertexFormat format) {
-        GpuBuffer indices;
-        VertexFormat.IndexType indexType;
-
-        if (pipeline.getVertexFormatMode() == VertexFormat.DrawMode.QUADS) {
-            // Sort the quads if there is translucency
-            builtBuffer.sortQuads(TacticsDrawRenderPipelines.ALLOCATOR,
-                    RenderSystem.getProjectionType().getVertexSorter());
-            // Upload the index buffer
-            indices = pipeline.getVertexFormat().uploadImmediateIndexBuffer(builtBuffer.getSortedBuffer());
-            indexType = builtBuffer.getDrawParameters().indexType();
-        } else {
-            // Use the general shape index buffer for non-quad draw modes
-            RenderSystem.ShapeIndexBuffer shapeIndexBuffer = RenderSystem
-                    .getSequentialBuffer(pipeline.getVertexFormatMode());
-            indices = shapeIndexBuffer.getIndexBuffer(drawParameters.indexCount());
-            indexType = shapeIndexBuffer.getIndexType();
-        }
-
-        // Actually execute the draw
-        GpuBufferSlice dynamicTransforms = RenderSystem.getDynamicUniforms()
-                .write(RenderSystem.getModelViewMatrix(), TacticsDrawRenderPipelines.COLOR_MODULATOR,
-                        RenderSystem.getModelOffset(), RenderSystem.getTextureMatrix(), 1f);
-        try (RenderPass renderPass = RenderSystem.getDevice()
-                .createCommandEncoder()
-                .createRenderPass(() -> TinyTactics.MOD_ID + " Shape Drawing Pipeline Rendering",
-                        client.getFramebuffer().getColorAttachmentView(), OptionalInt.empty(),
-                        client.getFramebuffer().getDepthAttachmentView(), OptionalDouble.empty())) {
-            renderPass.setPipeline(pipeline);
-
-            RenderSystem.bindDefaultUniforms(renderPass);
-            renderPass.setUniform("DynamicTransforms", dynamicTransforms);
-
-            // Bind texture if applicable:
-            // Sampler0 is used for texture inputs in vertices
-            // renderPass.bindSampler("Sampler0", textureView);
-
-            renderPass.setVertexBuffer(0, vertices);
-            renderPass.setIndexBuffer(indices, indexType);
-
-            // The base vertex is the starting index when we copied the data into the vertex
-            // buffer divided by vertex size
-            // noinspection ConstantValue
-            renderPass.drawIndexed(0 / format.getVertexSize(), 0, drawParameters.indexCount(), 1);
-        }
-
-        builtBuffer.close();
     }
 
 }

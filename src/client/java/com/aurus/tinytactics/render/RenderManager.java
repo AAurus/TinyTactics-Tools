@@ -3,7 +3,6 @@ package com.aurus.tinytactics.render;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import org.joml.Quaternionf;
 
 import com.aurus.tinytactics.data.TacticsDrawToolMap;
@@ -14,7 +13,6 @@ import com.aurus.tinytactics.util.Collection;
 import com.aurus.tinytactics.util.ListCollection;
 import com.aurus.tinytactics.util.MapCollection;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
-
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.util.math.BlockPos;
@@ -41,6 +39,9 @@ public class RenderManager {
 
     private static final RenderPipeline TACTICS_SHAPES_PIPELINE = RenderPipelines.TRANSLUCENT;
 
+    private static LineDrawer lineDrawer = LineDrawer.getInstance();
+    private static ShapeDrawer shapeDrawer = ShapeDrawer.getInstance();
+
     private RenderManager() {
         tacticsRulerMap = TacticsRulerMap.DEFAULT;
         tacticsShapeMap = TacticsShapeMap.DEFAULT;
@@ -56,7 +57,7 @@ public class RenderManager {
     public void init() {
         WorldRenderEvents.AFTER_TRANSLUCENT.register(context -> {
             renderAllRulerLines(context);
-            // renderAllShapes(context);
+            renderAllShapes(context);
         });
     }
 
@@ -84,12 +85,12 @@ public class RenderManager {
 
             if (vecs.size() >= 2) {
                 int mainColor = setColorAlpha(color.getEntityColor(), MAIN_RULER_LINE_OPACITY);
-                LineDrawer.getInstance().extractAndDrawLineStrip(context, vecs, mainColor, MAIN_RULER_LINE_WIDTH);
+                lineDrawer.extractAndDrawLineStrip(context, vecs, mainColor, MAIN_RULER_LINE_WIDTH);
 
                 Vec3d from = vecs.get(Math.max(vecs.size() - 2, 0));
                 Vec3d to = vecs.get(Math.max(vecs.size() - 1, 0));
                 int conerColor = setColorAlpha(mainColor, CORNER_RULER_LINE_OPACITY);
-                LineDrawer.getInstance().extractAndDrawLinesToCorners(context, from, to, conerColor,
+                lineDrawer.extractAndDrawLinesToCorners(context, from, to, conerColor,
                         CORNER_RULER_LINE_WIDTH);
             }
         });
@@ -100,15 +101,16 @@ public class RenderManager {
             Map<TacticsShape.Type, TacticsShape> map = ((MapCollection<TacticsShape.Type, TacticsShape>) collection)
                     .getEntries();
             renderShape(TacticsShape.Type.CONE, map, (cone) -> {
-                ShapeDrawer.renderCone(context, blockPosToVec3d(cone.getOrigin()), cone.getLength(), cone.getDiameter(),
+                shapeDrawer.extractAndDrawCone(context, blockPosToVec3d(cone.getOrigin()), cone.getLength(),
+                        cone.getDiameter(),
                         cone.getDirection(), setColorAlpha(color.getEntityColor(), SHAPE_OPACITY));
             });
             renderShape(TacticsShape.Type.SPHERE, map, (sphere) -> {
-                ShapeDrawer.renderSphere(context, blockPosToVec3d(sphere.getOrigin()), sphere.getDiameter(),
+                shapeDrawer.extractAndDrawSphere(context, blockPosToVec3d(sphere.getOrigin()), sphere.getDiameter(),
                         setColorAlpha(color.getEntityColor(), SHAPE_OPACITY));
             });
             renderShape(TacticsShape.Type.LINE, map, (line) -> {
-                ShapeDrawer.renderCylinder(context, blockPosToVec3d(line.getOrigin()), line.getLength(),
+                shapeDrawer.extractAndDrawCylinder(context, blockPosToVec3d(line.getOrigin()), line.getLength(),
                         line.getDiameter(), line.getDirection(), setColorAlpha(color.getEntityColor(), SHAPE_OPACITY));
             });
         });
@@ -155,4 +157,5 @@ public class RenderManager {
         float w = (float) (Math.sqrt((from.lengthSquared()) * (to.lengthSquared())) + from.dotProduct(to));
         return new Quaternionf((float) xyz.getX(), (float) xyz.getY(), (float) xyz.getZ(), w).normalize();
     }
+
 }

@@ -51,7 +51,7 @@ public class ActorMarkerBlock extends BlockWithEntity {
     private static final VoxelShape OUTLINE_SHAPE = Block.createCuboidShape(1.0, 1.0, 1.0, 15.0, 15.0, 15.0);
 
     public ActorMarkerBlock(Settings settings) {
-        super(settings.nonOpaque().noCollision());
+        super(settings.noCollision().luminance(x -> 1));
         setDefaultState(getDefaultState().with(ROTATION, 0).with(COLOR, DyeColor.WHITE));
     }
 
@@ -71,10 +71,10 @@ public class ActorMarkerBlock extends BlockWithEntity {
         return OUTLINE_SHAPE;
     }
 
-    // @Override
-    // protected BlockRenderType getRenderType(BlockState state) {
-    // return BlockRenderType.INVISIBLE;
-    // }
+    @Override
+    protected BlockRenderType getRenderType(BlockState state) {
+        return BlockRenderType.INVISIBLE;
+    }
 
     protected VoxelShape getCullingShape(BlockState state, BlockView world,
             BlockPos pos) {

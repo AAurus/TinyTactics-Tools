@@ -8,15 +8,20 @@ import com.aurus.tinytactics.blocks.actor_marker.ActorMarkerBlock;
 import com.aurus.tinytactics.blocks.actor_marker.ActorMarkerBlockEntity;
 import com.aurus.tinytactics.blocks.actor_marker.ActorMarkerRotationHelper;
 import com.aurus.tinytactics.data.ActorMarkerInventory;
+import com.aurus.tinytactics.data.ColorProviders;
 import com.aurus.tinytactics.data.ItemAttachmentPosition;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.RenderLayers;
 import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.block.BlockModelRenderer;
+import net.minecraft.client.render.block.BlockRenderManager;
 import net.minecraft.client.render.block.entity.BlockEntityRenderer;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactory;
+import net.minecraft.client.render.block.entity.LoadedBlockEntityModels;
 import net.minecraft.client.render.item.ItemRenderer;
 import net.minecraft.item.ItemDisplayContext;
 import net.minecraft.client.util.math.MatrixStack;
@@ -83,8 +88,27 @@ public class ActorMarkerBlockRenderer implements BlockEntityRenderer<ActorMarker
 
         rotateToLocal(matrices, state);
 
-        MinecraftClient.getInstance().getBlockRenderManager().renderBlock(state, pos, world, matrices,
-                vertexConsumers.getBuffer(RenderLayers.getEntityBlockLayer(state)), false, new ArrayList<>());
+        matrices.translate(0f, 2f, 0f);
+
+        BlockRenderManager renderManager = MinecraftClient.getInstance().getBlockRenderManager();
+
+        renderManager.renderBlock(state, pos.up(2), world, matrices,
+                vertexConsumers.getBuffer(RenderLayers.getEntityBlockLayer(state)), false,
+                renderManager.getModel(state).getParts(null));
+
+        // renderManager.renderBlockAsEntity(state, matrices, vertexConsumers, light,
+        // overlay);
+
+        // int i = ColorProviders.getBlockEntityColor(state, world, pos, 0);
+        // float f = (i >> 16 & 0xFF) / 255.0F;
+        // float g = (i >> 8 & 0xFF) / 255.0F;
+        // float h = (i & 0xFF) / 255.0F;
+        // float f = 1;
+        // float g = 1;
+        // float h = 1;
+        // BlockModelRenderer.render(matrices.peek(),
+        // vertexConsumers.getBuffer(RenderLayers.getEntityBlockLayer(state)),
+        // renderManager.getModel(state), f, g, h, light, overlay);
 
         matrices.pop();
 
